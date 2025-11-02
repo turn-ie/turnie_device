@@ -193,11 +193,6 @@ static bool renderFromJson(const uint8_t* buf, size_t len) {
   DynamicJsonDocument doc(8192);
   if (deserializeJson(doc, buf, len)) { Serial.println("❌ JSON parse"); return false; }
 
-  if (doc.containsKey("brightness")) {
-    int br = constrain(doc["brightness"].as<int>(), 0, 255);
-    matrix.setBrightness(br);
-  }
-
   JsonArray rgbA;
   if (doc["rgb"].is<JsonArray>()) rgbA = doc["rgb"].as<JsonArray>();
   else if (doc["records"].is<JsonArray>() && doc["records"][0]["rgb"].is<JsonArray>())
