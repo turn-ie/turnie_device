@@ -16,7 +16,7 @@
 #define GLOBAL_BRIGHTNESS 10
 
 // テキストスクロール設定
-static const uint16_t TEXT_FRAME_DELAY_MS = 50;  // スクロール速度(1ステップの遅延)
+static const uint16_t TEXT_FRAME_DELAY_MS = 30;  // スクロール速度(1ステップの遅延)
 static const uint8_t  TEXT_BRIGHTNESS     = 20;  // テキスト時の明るさ
 
 /***** ========== 無線・ファイル設定 ========== *****/
