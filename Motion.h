@@ -4,9 +4,10 @@
 #pragma once
 #include <Arduino.h>
 #include <Adafruit_NeoMatrix.h>
+#include "DisplayManager.h"
 
-// Motion.cppで定義されるMatrixへの参照
-extern Adafruit_NeoMatrix& Matrix;
+// Motion.cppで参照するMatrixはDisplayManager経由で提供
+using DisplayManager::Matrix;
 
 // === モーション用の明るさと色相 ===
 extern uint8_t gMotionBrightness;    // レーダー/リップル共通

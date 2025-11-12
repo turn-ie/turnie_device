@@ -1,0 +1,65 @@
+#ifndef JSON_HANDLER_H_
+#define JSON_HANDLER_H_
+
+#include <Arduino.h>
+#include <LittleFS.h>
+#include <ArduinoJson.h>
+#include <vector>
+
+// ========== 表示設定定数（.ino で定義） ==========
+extern uint16_t TEXT_FRAME_DELAY_MS;  // テキストスクロール速度 [ms]
+extern uint8_t TEXT_BRIGHTNESS;       // テキスト表示時の明るさ
+
+// ========== JSON表示データ管理 ==========
+extern String displayFlag;
+extern String displayText;
+extern std::vector<uint8_t> rgbData;
+
+// ========== インターフェース ==========
+
+/**
+ * LittleFSから /data.json を読み込み、displayFlag/displayText/rgbData を抽出
+ * 内部でJsonDocumentを解放するため、呼び出し後はポインタ経由アクセス不可
+ */
+void loadDisplayDataFromJson();
+
+/**
+ * 受信したJSONバイト列をLittleFS /data.json に保存
+ * 上書きモード(w)でファイルを開く
+ */
+void saveIncomingJson(const uint8_t* data, size_t len);
+
+/**
+ * 受信JSONをString形式で保存（互換性用）
+ */
+void saveIncomingJsonString(const String& json);
+
+/**
+ * 現在のdisplayFlagを取得
+ */
+const char* getDisplayFlag();
+
+/**
+ * 現在のdisplayTextを取得
+ */
+const char* getDisplayText();
+
+/**
+ * RGB配列へのアクセス（const reference）
+ */
+const std::vector<uint8_t>& getRgbData();
+
+/**
+ * LittleFS からJSON文字列を読み込み（ファイルが無ければ空文字列を返す）
+ */
+String loadJsonFromPath(const char* path, size_t maxBytes = 2048);
+
+/**
+ * 取得したデータ (displayFlag/text/rgb) に基づいて描画を実行
+ * DisplayManager を使用して flag に応じた表示分岐（text/image）を行う
+ * 呼び出し前に loadDisplayDataFromJson() で状態を更新すること
+ * 戻り値：true=描画実行、false=描画せず
+ */
+bool performDisplay();
+
+#endif // JSON_HANDLER_H_
