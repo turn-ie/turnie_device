@@ -9,34 +9,34 @@
 #include <ArduinoJson.h>
 #include <OneButton.h>
 
-#include "Motion.h"         // Radar/Ripple 用
-#include "Display_Manager.h" // LED表示統合モジュール
-#include "Json_Handler.h"   // JSON読み込み・保存管理
-#include "Comm_EspNow.h"    // 通信シーケンス外部化
+#include "Motion.h"           // Radar/Ripple 用
+#include "Display_Manager.h"  // LED表示統合モジュール
+#include "Json_Handler.h"     // JSON読み込み・保存管理
+#include "Comm_EspNow.h"      // 通信シーケンス外部化
 
 /***** ========== LED MATRIX ========== *****/
 #define GLOBAL_BRIGHTNESS 10
 
 // テキストスクロール設定
 uint16_t TEXT_FRAME_DELAY_MS = 60;  // スクロール速度(1ステップの遅延)
-uint8_t  TEXT_BRIGHTNESS     = 20;  // テキスト時の明るさ
+uint8_t TEXT_BRIGHTNESS = 20;       // テキスト時の明るさ
 
 /***** ========== ボタン ========== *****/
 // ダブルクリックで「受信データ表示モード」をトグル
-// 必要に応じて環境に合わせて変更してください（内部プルアップ・GND落とし想定のアクティブLOW）
+// 必要に応じて環境に合わせて変更してください
 #ifndef BUTTON_PIN
 #define BUTTON_PIN 39
 #endif
 
 // OneButtonでクリック/ダブルクリックを扱う
-static OneButton g_btn;                 // 後でsetup()で初期化
-static bool DisplayMode = false;        // 受信データ表示モード（ダブルクリックでトグル）
+static OneButton g_btn;           // 後でsetup()で初期化
+static bool DisplayMode = false;  // 受信データ表示モード（ダブルクリックでトグル）
 
 /***** ========== 無線・ファイル設定 ========== *****/
 static const int WIFI_CH = 6;
 static const char* JSON_PATH = "/data.json";
 
-static int RSSI_THRESHOLD_DBM = -40; // 必要に応じて変更可
+static int RSSI_THRESHOLD_DBM = -40;  // 必要に応じて変更可
 
 /***** ========== ランタイム状態 ========== *****/
 String myJson;
@@ -44,7 +44,7 @@ String myJson;
 /***** ========== 受信フロー（保存→表示） ========== *****/
 static void OnMessageReceived(const uint8_t* data, size_t len) {
   // 保存→ガード→演出→解析→表示→待機
-  saveIncomingJson(data, len); // RAMリングバッファへ保存（直近N件）
+  saveIncomingJson(data, len);  // RAMリングバッファへ保存（直近N件）
   DisplayManager::BlockFor(1600);
   Ripple_PlayOnce();
   loadDisplayDataFromJson();
@@ -53,8 +53,9 @@ static void OnMessageReceived(const uint8_t* data, size_t len) {
 }
 
 /***** ========== Arduino 標準 ========== *****/
-void setup(){
-  Serial.begin(115200); delay(200);
+void setup() {
+  Serial.begin(115200);
+  delay(200);
   Serial.println("\n=== ESP-NOW JSON Broadcast ===");
 
   // LED
@@ -63,16 +64,16 @@ void setup(){
   Ripple_PlayOnce();
 
   // ボタン（OneButtonを使用して初期化）
-  g_btn.setup(BUTTON_PIN, INPUT_PULLUP, true); // アクティブLOW、内部プルアップ
-  g_btn.setClickMs(300);                       // ダブルクリックの間隔
+  g_btn.setup(BUTTON_PIN, INPUT_PULLUP, true);  // アクティブLOW、内部プルアップ
+  g_btn.setClickMs(300);                        // ダブルクリックの間隔
   // ダブルクリック：受信データ表示モードをトグル
-  g_btn.attachDoubleClick([](){
+  g_btn.attachDoubleClick([]() {
     DisplayMode = !DisplayMode;
-    DisplayManager::AllOn(TEXT_BRIGHTNESS); // モード切替時に全点灯
+    DisplayManager::AllOn(TEXT_BRIGHTNESS);  // モード切替時に全点灯
     Serial.printf("[MODE] 受信データ表示モード: %s\n", DisplayMode ? "ON" : "OFF");
   });
   // シングルクリック：モードONのとき最新受信データを再生
-  g_btn.attachClick([](){
+  g_btn.attachClick([]() {
     if (!DisplayMode) return;
     size_t n = inboxSize();
     if (n == 0) {
@@ -96,6 +97,7 @@ void setup(){
 
   // LittleFS -> myJson 読み出し＆シリアル表示
   myJson = loadJsonFromPath(JSON_PATH, 2048);
+  Serial.printf("📄 生データ:\n%s\n", myJson.c_str());
   Serial.printf("📄 %s (%uB)\n", JSON_PATH, (unsigned)myJson.length());
   if (!myJson.isEmpty()) {
     // 起動時にも表示試行
@@ -114,10 +116,10 @@ void setup(){
   Radar_InitIdle();
 }
 
-void loop(){
+void loop() {
   static unsigned long nextSend = 0;
   unsigned long now = millis();
-  
+
   // --- ボタン（OneButton） ---
   // OneButtonの状態更新（イベント発火）
   g_btn.tick();
@@ -130,6 +132,6 @@ void loop(){
 
   if (!myJson.isEmpty() && now >= nextSend) {
     Comm_SendJsonBroadcast(myJson);
-    nextSend = now + 500 + (esp_random() % 200) - 50; // ±100ms ジッター
+    nextSend = now + 500 + (esp_random() % 200) - 50;  // ±100ms ジッター
   }
 }
