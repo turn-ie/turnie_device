@@ -5,7 +5,7 @@
 
 // 表示設定定数の外部宣言（.ino で定義）
 extern uint16_t TEXT_FRAME_DELAY_MS;
-extern uint8_t TEXT_BRIGHTNESS;
+extern int GLOBAL_BRIGHTNESS;
 
 // 8x8/ピン/ピクセルタイプはここで定義（必要なら変更）
 #ifndef DISP_W

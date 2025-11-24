@@ -141,7 +141,7 @@ bool performDisplay() {
     
     if (flag == "text") {
         if (displayText.isEmpty()) return false;
-        DisplayManager::SetTextBrightness(TEXT_BRIGHTNESS);
+        DisplayManager::SetTextBrightness(GLOBAL_BRIGHTNESS);
         unsigned long dur = DisplayManager::TextEstimateDurationMs(displayText.c_str(), TEXT_FRAME_DELAY_MS);
         if (dur != 0) DisplayManager::BlockFor(dur);
         DisplayManager::TextPlayOnce(displayText.c_str(), TEXT_FRAME_DELAY_MS);

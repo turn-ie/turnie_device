@@ -16,11 +16,8 @@
 #include "Comm_EspNow.h"      // 通信シーケンス
 
 /***** ========== LED MATRIX ========== *****/
-#define GLOBAL_BRIGHTNESS 10
-
-// テキストスクロール設定
+int GLOBAL_BRIGHTNESS = 20;
 uint16_t TEXT_FRAME_DELAY_MS = 60;  // スクロール速度(1ステップの遅延)
-uint8_t TEXT_BRIGHTNESS = 20;       // テキスト時の明るさ
 
 /***** ========== ボタン ========== *****/
 #ifndef BUTTON_PIN
@@ -70,29 +67,43 @@ void setup() {
   g_btn.setClickMs(300);                        // 
   g_btn.attachDoubleClick([]() {
     DisplayMode = !DisplayMode;
-    DisplayManager::AllOn(TEXT_BRIGHTNESS);  
-    DisplayManager::BlockFor(800); 
+    DisplayManager::AllOn(GLOBAL_BRIGHTNESS);
+    DisplayManager::BlockFor(500); 
     Serial.printf("[MODE] 受信データ表示モード: %s\n", DisplayMode ? "ON" : "OFF");
+
+    if (DisplayMode) {
+      // 表示モード再生 (Play latest)
+      size_t n = inboxSize();
+      if (n > 0) {
+        InboxItem item;
+        if (inboxGet(n - 1, item)) {
+           if (loadDisplayFromJsonString(item.json)) {
+             performDisplay();
+           }
+        }
+      } else {
+        Serial.println("[INBOX] データなし");
+      }
+    } else {
+      // 表示モード終了 (End)
+      DisplayManager::Clear();
+    }
   });
 
-    g_btn.attachClick([]() {
+  g_btn.attachClick([]() {
     if (!DisplayMode) return;
+    
+    // 受信データの二番目へ (To the 2nd item)
     size_t n = inboxSize();
-    if (n == 0) {
-      Serial.println("[INBOX] 受信データなし");
-      return;
-    }
-    InboxItem item;
-    if (!inboxGet(n - 1, item)) {
-      Serial.println("[INBOX] 取得失敗");
-      return;
-    }
-    if (!loadDisplayFromJsonString(item.json)) {
-      Serial.println("[PARSE] JSON解析失敗");
-      return;
-    }
-    if (!performDisplay()) {
-      Serial.println("[DISPLAY] 表示できるデータがありません");
+    if (n >= 2) {
+      InboxItem item;
+      if (inboxGet(n - 2, item)) {
+         if (loadDisplayFromJsonString(item.json)) {
+           performDisplay();
+         }
+      }
+    } else {
+      Serial.println("[INBOX] 2番目のデータなし");
     }
   });
 

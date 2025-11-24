@@ -111,13 +111,13 @@ void SetTextBrightness(uint8_t b) {
 
 void TextInit() {
   s_matrix.setTextWrap(false);
-  s_matrix.setBrightness(TEXT_BRIGHTNESS);
+  s_matrix.setBrightness(GLOBAL_BRIGHTNESS);
   s_matrix.setTextColor(colors[0]);
   MatrixWidth = s_matrix.width();
 }
 
 void TextPlayOnce(const char* text, uint16_t frame_delay_ms) {
-  s_matrix.setBrightness(TEXT_BRIGHTNESS);
+  s_matrix.setBrightness(GLOBAL_BRIGHTNESS);
   int textWidth = getStringWidth(text);
   MatrixWidth = s_matrix.width();
   while (MatrixWidth >= -textWidth) {

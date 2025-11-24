@@ -23,7 +23,7 @@ bool inboxGet(size_t index, InboxItem& out);
 
 // ========== 表示設定定数（.ino で定義） ==========
 extern uint16_t TEXT_FRAME_DELAY_MS;  // テキストスクロール速度 [ms]
-extern uint8_t TEXT_BRIGHTNESS;       // テキスト表示時の明るさ
+extern int GLOBAL_BRIGHTNESS;       // テキスト表示時の明るさ
 
 // ========== JSON表示データ管理 ==========
 extern String displayFlag;
