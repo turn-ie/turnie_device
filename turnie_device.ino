@@ -28,6 +28,12 @@ uint16_t TEXT_FRAME_DELAY_MS = 60;  // スクロール速度(1ステップの遅
 static OneButton g_btn;            
 static bool DisplayMode = false;   
 
+// ▼▼▼ 追加 ▼▼▼
+String lastRxData = "";          // 最後に受信したデータ
+unsigned long lastRxTime = 0;    // 最後に受信した時刻
+const unsigned long IGNORE_MS = 10000; // 同じデータを無視する時間(ミリ秒)
+// ▲▲▲ 追加 ▲▲▲
+
 /***** ========== 無線・ファイル設定 ========== *****/
 static const int WIFI_CH = 6;
 static const char* JSON_PATH = "/data.json";
@@ -39,17 +45,30 @@ String myJson;
 
 /***** ========== 受信フロー（保存→表示） ========== *****/
 static void OnMessageReceived(const uint8_t* data, size_t len) {
+  // 先にString化して内容を確認
+  String incoming((const char*)data, len);
+
+  // 【判定】データ内容が前回と同じ かつ 指定時間(10秒)以内なら無視して終了
+  if (incoming.equals(lastRxData) && (millis() - lastRxTime < IGNORE_MS)) {
+    return; 
+  }
+
+  // 新しい通信として記録を更新
+  lastRxData = incoming;
+  lastRxTime = millis();
+
+  // --- 以下、既存の処理 (一部 incoming 変数を利用して効率化) ---
   saveIncomingJson(data, len);  
   DisplayManager::BlockFor(1600);
   Ripple_PlayOnce();
 
-  String js((const char*)data, len);  
-  if (!loadDisplayFromJsonString(js)) {
+  // 既に incoming に変換済みなので再利用
+  if (!loadDisplayFromJsonString(incoming)) {
     Serial.println("[PARSE] 受信JSON解析失敗");
   } else if (!performDisplay()) {
     Serial.println("[DISPLAY] 表示できるデータがありません");
   }
-  Serial.println(js);  
+  Serial.println(incoming);  
 }
 
 /***** ========== Arduino 標準 ========== *****/
