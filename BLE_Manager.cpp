@@ -90,10 +90,10 @@ void BLE_Tick() {
   pendingJsonReady = false;
 
   // Save to LittleFS
-  if (!saveJsonToPath("/mydata.json", js)) {
-    Serial.println("[BLE] failed to write /mydata.json");
+  if (!saveJsonToPath("/data.json", js)) {
+    Serial.println("[BLE] failed to write /data.json");
   } else {
-    Serial.println("[BLE] saved /mydata.json");
+    Serial.println("[BLE] saved /data.json");
   }
   if (!saveJsonToPath("/data.json", js)) {
     Serial.println("[BLE] failed to write /data.json");
