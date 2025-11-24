@@ -174,6 +174,7 @@ void Comm_SendJsonBroadcast(const String& json) {
 
   uint8_t packet[sizeof(ChunkHdr) + CHUNK_MAX];
   for (uint16_t i = 0; i < total; i++) {
+    Serial.printf("Sending chunk %u/%u\n", i + 1, total);
     size_t off = (size_t)i * CHUNK_MAX;
     uint16_t n = (uint16_t)min((size_t)CHUNK_MAX, L - off);
 

@@ -12,6 +12,7 @@
 #include "Motion.h"           // Radar/Ripple 用
 #include "Display_Manager.h"  // LED表示統合モジュール
 #include "Json_Handler.h"     // JSON読み込み・保存管理
+#include "BLE_Manager.h"      // BLEを使ったJSON受信
 #include "Comm_EspNow.h"      // 通信シーケンス
 
 /***** ========== LED MATRIX ========== *****/
@@ -28,35 +29,33 @@ uint8_t TEXT_BRIGHTNESS = 20;       // テキスト時の明るさ
 #define BUTTON_PIN 39
 #endif
 
-// OneButtonでクリック/ダブルクリックを扱う
+// OneButtonでクリック/1
 
-static OneButton g_btn;           // 後でsetup()で初期化
-static bool DisplayMode = false;  // 受信データ表示モード（ダブルクリックでトグル）
+static OneButton g_btn;            
+static bool DisplayMode = false;   
 
 /***** ========== 無線・ファイル設定 ========== *****/
 static const int WIFI_CH = 6;
 static const char* JSON_PATH = "/data.json";
 
-static int RSSI_THRESHOLD_DBM = -20;  // 必要に応じて変更可
+static int RSSI_THRESHOLD_DBM = -20; 
 
 /***** ========== ランタイム状態 ========== *****/
 String myJson;
 
 /***** ========== 受信フロー（保存→表示） ========== *****/
 static void OnMessageReceived(const uint8_t* data, size_t len) {
-  // 保存→ガード→演出→解析→表示→待機
-  saveIncomingJson(data, len);  // RAMリングバッファへ保存（直近N件）
+  saveIncomingJson(data, len);  
   DisplayManager::BlockFor(1600);
   Ripple_PlayOnce();
 
-  String js((const char*)data, len);  // 受信データをJSON文字列に変換
+  String js((const char*)data, len);  
   if (!loadDisplayFromJsonString(js)) {
     Serial.println("[PARSE] 受信JSON解析失敗");
   } else if (!performDisplay()) {
     Serial.println("[DISPLAY] 表示できるデータがありません");
   }
-  Serial.println(js);  // 受信データの表示
-  // レーダー再初期化は表示の有効期限切れ後に loop() 側で行う
+  Serial.println(js);  
 }
 
 /***** ========== Arduino 標準 ========== *****/
@@ -65,25 +64,21 @@ void setup() {
   delay(200);
   Serial.println("\n=== ESP-NOW JSON Broadcast ===");
 
-  // LED
   DisplayManager::Init(GLOBAL_BRIGHTNESS);
   DisplayManager::TextInit();
   Ripple_PlayOnce();
 
-  // ボタン（OneButtonを使用して初期化）
-  g_btn.setup(BUTTON_PIN, INPUT_PULLUP, true);  // アクティブLOW、内部プルアップ
-  g_btn.setClickMs(300);                        // ダブルクリックの間隔
-  // ダブルクリック：受信データ表示モードをトグル
+/*** ========== ボタン ========== *****/
+  g_btn.setup(BUTTON_PIN, INPUT_PULLUP, true);  // 
+  g_btn.setClickMs(300);                        // 
   g_btn.attachDoubleClick([]() {
     DisplayMode = !DisplayMode;
-    DisplayManager::AllOn(TEXT_BRIGHTNESS);  // モード切替時に全点灯
+    DisplayManager::AllOn(TEXT_BRIGHTNESS);  
     DisplayManager::BlockFor(800); 
     Serial.printf("[MODE] 受信データ表示モード: %s\n", DisplayMode ? "ON" : "OFF");
   });
 
-
-  // シングルクリック：モードONのとき最新受信データを再生
-  g_btn.attachClick([]() {
+    g_btn.attachClick([]() {
     if (!DisplayMode) return;
     size_t n = inboxSize();
     if (n == 0) {
@@ -105,52 +100,62 @@ void setup() {
     }
   });
 
-  // LittleFS -> myJson 読み出し＆シリアル表示
   myJson = loadJsonFromPath(JSON_PATH, 2048);
   Serial.printf("📄 生データ:\n%s\n", myJson.c_str());
   Serial.printf("📄 %s (%uB)\n", JSON_PATH, (unsigned)myJson.length());
   if (!myJson.isEmpty()) {
-    // 起動時にも表示試行
     loadDisplayFromLittleFS();
     performDisplay();
   }
 
-  // ESP-NOWコールバック登録
   Comm_SetOnMessage(OnMessageReceived);
   Comm_Init(WIFI_CH);
-  // 受信RSSIしきい値の設定（-40dBmより弱い受信は破棄）
   Comm_SetMinRssiToAccept(RSSI_THRESHOLD_DBM);
 
-  // データ待機モード開始 → 表示中でなければレーダー起動
   if (!DisplayManager::IsActive()) {
-    Serial.println("🔍 待機中: Radar開始");
     Radar_InitIdle();
   } else {
     Serial.println("🔍 起動時に表示中のため、レーダーは有効期限後に開始");
   }
+
+  // BLE: JSON 受信機能の初期化
+  BLE_Init();
 }
 
 void loop() {
   static unsigned long nextSend = 0;
   unsigned long now = millis();
 
-  // 表示の有効期限が切れていたら消灯し、待機レーダーに戻す
   if (DisplayManager::EndIfExpired()) {
     Radar_InitIdle();
   }
 
-  // --- ボタン（OneButton） ---
-  // OneButtonの状態更新（イベント発火）
   g_btn.tick();
 
-  // データ表示/エフェクト中はレーダーを停止
   if (!DisplayManager::IsActive()) {
     Radar_IdleStep(true);
   }
   delay(16);
 
+  BLE_Tick();
+
   if (!myJson.isEmpty() && now >= nextSend) {
     Comm_SendJsonBroadcast(myJson);
-    nextSend = now + 100 + (esp_random() % 50) - 25;  // ±25ms ジッター
+    nextSend = now + 100 + (esp_random() % 50) - 25;  
+    
+  }
+  if (Serial.available() > 0) {
+    String line = Serial.readStringUntil('\n');
+    line.trim();
+    if (line.startsWith("save:")) {
+      String js = line.substring(5);
+      if (!js.isEmpty()) {
+        saveJsonToPath("/mydata.json", js);
+        saveJsonToPath("/data.json", js);
+        loadDisplayFromLittleFS();
+        performDisplay();
+        Serial.println("Saved JSON to /mydata.json and /data.json and displayed it");
+      }
+    }
   }
 }

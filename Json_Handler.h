@@ -43,7 +43,13 @@ extern std::vector<uint8_t> rgbData;
  * 内部でJsonDocumentを解放するため、呼び出し後はポインタ経由アクセス不可
  */
 // LittleFS から /data.json を読み込み、表示用データをセット
-bool loadDisplayFromLittleFS();
+// LittleFS から /data.json を読み込み、表示用データをセット
+// path を指定可能にして、デフォルトは "/data.json"
+bool loadDisplayFromLittleFS(const char* path = "/data.json");
+
+// LittleFS へ JSON 生文字列を書き込み
+// 書き込み成功なら true
+bool saveJsonToPath(const char* path, const String& jsonString);
 
 // メモリ上のJSON文字列から displayFlag/displayText/rgbData を抽出してセット
 // 成功なら true

@@ -67,8 +67,8 @@ static JsonObject parseJsonFile(const char* path) {
     return doc.as<JsonObject>();
 }
 
-bool loadDisplayFromLittleFS() {
-    JsonObject obj = parseJsonFile("/data.json");
+bool loadDisplayFromLittleFS(const char* path) {
+    JsonObject obj = parseJsonFile(path);
     if (!obj) return false;
     
     displayFlag = obj["flag"] | "";
@@ -89,6 +89,15 @@ bool loadDisplayFromLittleFS() {
         rgbData.clear();
         return false;
     }
+}
+
+bool saveJsonToPath(const char* path, const String& jsonString) {
+    if (!LittleFS.begin(false)) LittleFS.begin(true);
+    File f = LittleFS.open(path, "w");
+    if (!f) return false;
+    size_t written = f.print(jsonString);
+    f.close();
+    return written == jsonString.length();
 }
 
 bool loadDisplayFromJsonString(const String& jsonString) {
