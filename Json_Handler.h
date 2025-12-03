@@ -37,6 +37,6 @@ bool loadDisplayFromLittleFS(const char* path = "/data.json");
 bool saveJsonToPath(const char* path, const String& jsonString);
 bool loadDisplayFromJsonString(const String& jsonString);
 String loadJsonFromPath(const char* path, size_t maxBytes = 2048);
-bool performDisplay();
+bool performDisplay(bool animate = false, unsigned long display_ms = 3000);
 
 #endif // JSON_HANDLER_H_

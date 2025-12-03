@@ -65,14 +65,6 @@ bool ShowRGB(const uint8_t* rgb, size_t n, unsigned long display_ms) {
     for (int sx = 0; sx < DISP_W; ++sx) {
       size_t i = (size_t)(sy * DISP_W + sx) * 3;
       
-      // 90度反時計回りに回転
-      // int dx = sy;
-      // int dy = DISP_W - 1 - sx;
-
-      // 🔸 180度回転（上下左右を反転）
-      // int dx = DISP_W - 1 - sx;
-      // int dy = DISP_H - 1 - sy;
-
       // 純向き
       int dx = sx;
       int dy = sy;
@@ -82,6 +74,31 @@ bool ShowRGB(const uint8_t* rgb, size_t n, unsigned long display_ms) {
   }
   s_matrix.show();
 
+  s_until_ms = millis() + display_ms;
+  return true;
+}
+
+bool ShowRGB_Animated(const uint8_t* rgb, size_t n, unsigned long display_ms) {
+  if (!rgb) return false;
+  if (n < (size_t)(DISP_W * DISP_H * 3)) return false;
+
+  s_matrix.fillScreen(0);
+  s_matrix.show(); // まず消す
+
+  for (int sy = 0; sy < DISP_H; ++sy) {
+    for (int sx = 0; sx < DISP_W; ++sx) {
+      size_t i = (size_t)(sy * DISP_W + sx) * 3;
+      
+      // 純向き
+      int dx = sx;
+      int dy = sy;
+
+      s_matrix.drawPixel(dx, dy, s_matrix.Color(rgb[i + 1], rgb[i], rgb[i + 2]));
+      s_matrix.show();
+      delay(10); // 1ピクセルごとのウェイト
+    }
+  }
+  
   s_until_ms = millis() + display_ms;
   return true;
 }
@@ -190,4 +207,4 @@ unsigned long TextEstimateDurationMs(const char* text, uint16_t frame_delay_ms) 
   return (unsigned long)steps * (unsigned long)frame_delay_ms;
 }
 
-} 
+}

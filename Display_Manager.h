@@ -30,6 +30,7 @@ namespace DisplayManager {
 
   // === 画像表示 ===
   bool ShowRGB(const uint8_t* rgb, size_t n, unsigned long display_ms);
+  bool ShowRGB_Animated(const uint8_t* rgb, size_t n, unsigned long display_ms); // アニメーション付き
   void Clear();
   // 全点灯（白）
   void AllOn(uint8_t brightness);

@@ -134,7 +134,7 @@ String loadJsonFromPath(const char* path, size_t maxBytes) {
     return s;
 }
 
-bool performDisplay() {
+bool performDisplay(bool animate, unsigned long display_ms) {
     String flag = displayFlag;
     if (flag.isEmpty()) return false;
     flag.toLowerCase();
@@ -148,7 +148,12 @@ bool performDisplay() {
     
     if (flag == "image" || flag == "photo" || flag == "emoji") {
         if (rgbData.empty()) return false;
-        return DisplayManager::ShowRGB(rgbData.data(), rgbData.size(), 3000);
+        unsigned long duration = (display_ms == 0) ? 1 : display_ms;
+        if (animate) {
+            return DisplayManager::ShowRGB_Animated(rgbData.data(), rgbData.size(), duration);
+        } else {
+            return DisplayManager::ShowRGB(rgbData.data(), rgbData.size(), duration);
+        }
     }
     
     return false;

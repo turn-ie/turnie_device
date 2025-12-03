@@ -33,6 +33,8 @@ static bool DisplayMode = false;
 String lastRxData = "";          // 最後に受信したデータ
 unsigned long lastRxTime = 0;    // 最後に受信した時刻
 const unsigned long IGNORE_MS = 10000; // 同じデータを無視する時間(ミリ秒)
+const unsigned long RECEIVE_DISPLAY_HOLD_MS = 1600;   // 受信アニメーション後の保持時間
+const unsigned long RECEIVE_DISPLAY_GUARD_MS = 4500;  // Ripple+アニメ中の割り込み防止
 // ▲▲▲ 追加 ▲▲▲
 
 /***** ========== 無線・ファイル設定 ========== *****/
@@ -60,14 +62,16 @@ static void OnMessageReceived(const uint8_t* data, size_t len) {
 
   // --- 以下、既存の処理 (一部 incoming 変数を利用して効率化) ---
   saveIncomingJson(data, len);  
-  DisplayManager::BlockFor(2000); // ★ここで表示時間を設定 (1600ms)
+  DisplayManager::BlockFor(RECEIVE_DISPLAY_GUARD_MS); // Ripple+アニメ完了まで割り込み防止
   Ripple_PlayOnce();
 
   // 既に incoming に変換済みなので再利用
   if (!loadDisplayFromJsonString(incoming)) {
-    Serial.println("[PARSE] 受信JSON解析失敗");
-  } else if (!performDisplay()) {
-    Serial.println("[DISPLAY] 表示できるデータがありません");
+    Serial.println("❌ JSONパース失敗");
+  } else if (!performDisplay(true, RECEIVE_DISPLAY_HOLD_MS)) { // 受信時はアニメーション+保持
+    Serial.println("❌ 表示失敗 (flag不明 or データ不足)");
+  } else {
+    Serial.println("✅ 受信データを表示中...");
   }
   Serial.println(incoming);  
 }
