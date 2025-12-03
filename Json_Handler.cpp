@@ -134,7 +134,7 @@ String loadJsonFromPath(const char* path, size_t maxBytes) {
     return s;
 }
 
-bool performDisplay(bool animate, unsigned long display_ms) {
+bool performDisplay(bool animate, unsigned long display_ms, bool textLoop) {
     String flag = displayFlag;
     if (flag.isEmpty()) return false;
     flag.toLowerCase();
@@ -142,7 +142,7 @@ bool performDisplay(bool animate, unsigned long display_ms) {
     if (flag == "text") {
         if (displayText.isEmpty()) return false;
         DisplayManager::SetTextBrightness(GLOBAL_BRIGHTNESS);
-        DisplayManager::TextScroll_Start(displayText.c_str(), TEXT_FRAME_DELAY_MS);
+        DisplayManager::TextScroll_Start(displayText.c_str(), TEXT_FRAME_DELAY_MS, textLoop);
         return true;
     }
     

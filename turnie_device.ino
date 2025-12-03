@@ -68,7 +68,7 @@ static void OnMessageReceived(const uint8_t* data, size_t len) {
   // 既に incoming に変換済みなので再利用
   if (!loadDisplayFromJsonString(incoming)) {
     Serial.println("❌ JSONパース失敗");
-  } else if (!performDisplay(true, RECEIVE_DISPLAY_HOLD_MS)) { // 受信時はアニメーション+保持
+  } else if (!performDisplay(true, RECEIVE_DISPLAY_HOLD_MS, false)) { // 受信時はアニメーション+1回のみ
     Serial.println("❌ 表示失敗 (flag不明 or データ不足)");
   } else {
     Serial.println("✅ 受信データを表示中...");
@@ -105,7 +105,7 @@ void setup() {
         InboxItem item;
         if (inboxGet(n - 1, item)) {
            if (loadDisplayFromJsonString(item.json)) {
-             performDisplay();
+             performDisplay(false, 3000, false); // テキストは1回のみ
            }
         }
       } else {
@@ -127,7 +127,7 @@ void setup() {
       InboxItem item;
       if (inboxGet(n - 2, item)) {
          if (loadDisplayFromJsonString(item.json)) {
-           performDisplay();
+           performDisplay(false, 3000, false); // テキストは1回のみ
          }
       }
     } else {
@@ -182,7 +182,7 @@ void loop() {
 
   g_btn.tick();
 
-  if (!DisplayManager::IsActive() && !DisplayMode) {
+  if (DisplayManager::TextScroll_IsActive()) {
     DisplayManager::TextScroll_Update();
   }
   delay(16);

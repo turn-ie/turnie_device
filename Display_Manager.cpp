@@ -154,12 +154,14 @@ static int s_scrollX = 0;
 static int s_textWidth = 0;
 static unsigned long s_lastScrollTime = 0;
 static bool s_isScrolling = false;
+static bool s_scrollLoop = true;
 
-void TextScroll_Start(const char* text, uint16_t frame_delay_ms) {
+void TextScroll_Start(const char* text, uint16_t frame_delay_ms, bool loop) {
   if (!text) return;
   s_scrollText = String(text);
   s_scrollDelay = frame_delay_ms;
   s_textWidth = getStringWidth(s_scrollText.c_str());
+  s_scrollLoop = loop;
   
   s_matrix.setBrightness(GLOBAL_BRIGHTNESS);
   s_matrix.setTextWrap(false); // Ensure no wrap
@@ -187,7 +189,13 @@ void TextScroll_Update() {
     
     s_scrollX--;
     if (s_scrollX < -s_textWidth) {
-      s_scrollX = s_matrix.width(); // Loop back
+      if (s_scrollLoop) {
+        s_scrollX = s_matrix.width(); // Loop back
+      } else {
+        s_isScrolling = false; // Stop after one scroll
+        s_matrix.fillScreen(0);
+        s_matrix.show();
+      }
     }
   }
 }

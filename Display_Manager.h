@@ -46,7 +46,7 @@ namespace DisplayManager {
   void TextPlayOnce(const char* text, uint16_t frame_delay_ms);
   
   // Non-blocking Text Scroll
-  void TextScroll_Start(const char* text, uint16_t frame_delay_ms);
+  void TextScroll_Start(const char* text, uint16_t frame_delay_ms, bool loop = true);
   void TextScroll_Update();
   void TextScroll_Stop();
   bool TextScroll_IsActive();
