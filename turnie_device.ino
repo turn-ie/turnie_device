@@ -140,7 +140,16 @@ void setup() {
   }
 
   Comm_SetOnMessage(OnMessageReceived);
-  Comm_Init(WIFI_CH);
+
+  int currentChannel = WiFi.channel();
+  if (currentChannel > 0) {
+    Serial.printf("📡 WiFi connected on CH %d. Using this for ESP-NOW.\n", currentChannel);
+    Comm_Init(currentChannel);
+  } else {
+    Serial.printf("📡 WiFi not connected. Using default CH %d.\n", WIFI_CH);
+    Comm_Init(WIFI_CH);
+  }
+
   Comm_SetMinRssiToAccept(RSSI_THRESHOLD_DBM);
 
   if (!DisplayManager::IsActive()) {
