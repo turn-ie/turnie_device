@@ -112,9 +112,12 @@ void setup() {
         Serial.println("[INBOX] データなし");
       }
     } else {
-      // 表示モード終了 (End)
+      // 表示モード終了 (End) → 自分のJSONを表示
       DisplayManager::Clear();
-      //Radar_InitIdle();
+      if (!myJson.isEmpty()) {
+        loadDisplayFromJsonString(myJson);
+        performDisplay();
+      }
     }
   });
 
@@ -173,8 +176,8 @@ void loop() {
   unsigned long now = millis();
 
   if (DisplayManager::EndIfExpired()) {
-    if (!myJson.isEmpty()) {
-      // 期限切れ後、自分のデータを再ロードして表示
+    if (!myJson.isEmpty() && !DisplayMode) {
+      // 期限切れ後、自分のデータを再ロードして表示（受信データ表示モード中は除く）
       loadDisplayFromJsonString(myJson);
       performDisplay();
     }
