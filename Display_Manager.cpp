@@ -65,9 +65,9 @@ bool ShowRGB(const uint8_t* rgb, size_t n, unsigned long display_ms) {
     for (int sx = 0; sx < DISP_W; ++sx) {
       size_t i = (size_t)(sy * DISP_W + sx) * 3;
       
-      // 純向き
-      int dx = sx;
-      int dy = sy;
+      // 反時計回り90度回転: (sx, sy) → (sy, DISP_W - 1 - sx)
+      int dx = sy;
+      int dy = DISP_W - 1 - sx;
 
       s_matrix.drawPixel(dx, dy, s_matrix.Color(rgb[i + 1], rgb[i], rgb[i + 2]));
     }
@@ -89,9 +89,9 @@ bool ShowRGB_Animated(const uint8_t* rgb, size_t n, unsigned long display_ms) {
     for (int sx = 0; sx < DISP_W; ++sx) {
       size_t i = (size_t)(sy * DISP_W + sx) * 3;
       
-      // 純向き
-      int dx = sx;
-      int dy = sy;
+      // 反時計回り90度回転: (sx, sy) → (sy, DISP_W - 1 - sx)
+      int dx = sy;
+      int dy = DISP_W - 1 - sx;
 
       s_matrix.drawPixel(dx, dy, s_matrix.Color(rgb[i + 1], rgb[i], rgb[i + 2]));
       s_matrix.show();
@@ -164,8 +164,9 @@ void TextScroll_Start(const char* text, uint16_t frame_delay_ms, bool loop) {
   s_scrollLoop = loop;
   
   s_matrix.setBrightness(GLOBAL_BRIGHTNESS);
+  s_matrix.setRotation(3); // 反時計回り90度回転
   s_matrix.setTextWrap(false); // Ensure no wrap
-  s_scrollX = s_matrix.width();
+  s_scrollX = s_matrix.height(); // 回転後はheightがスクロール方向
   s_isScrolling = true;
   s_lastScrollTime = millis();
   
@@ -190,7 +191,7 @@ void TextScroll_Update() {
     s_scrollX--;
     if (s_scrollX < -s_textWidth) {
       if (s_scrollLoop) {
-        s_scrollX = s_matrix.width(); // Loop back
+        s_scrollX = s_matrix.height(); // 回転後はheightがスクロール方向
       } else {
         s_isScrolling = false; // Stop after one scroll
         s_matrix.fillScreen(0);
@@ -202,6 +203,7 @@ void TextScroll_Update() {
 
 void TextScroll_Stop() {
   s_isScrolling = false;
+  s_matrix.setRotation(0); // 回転をリセット
 }
 
 bool TextScroll_IsActive() {
