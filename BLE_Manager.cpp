@@ -7,7 +7,8 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include <LittleFS.h>
+
+extern String myJson;  // ← 追加: turnie_device.inoのmyJsonを参照
 
 #define SERVICE_UUID "12345678-1234-1234-1234-1234567890ab"
 #define RX_UUID "abcd1234-5678-90ab-cdef-1234567890ab"
@@ -85,21 +86,19 @@ void BLE_Init() {
 
 void BLE_Tick() {
   if (!pendingJsonReady) return;
-  // copy and clear flag early
+  
   String js = pendingJson;
   pendingJsonReady = false;
 
-  // Save to LittleFS
   if (!saveJsonToPath("/data.json", js)) {
     Serial.println("[BLE] failed to write /data.json");
-  } else {
-    Serial.println("[BLE] saved /data.json");
+    return;
   }
-  if (!saveJsonToPath("/data.json", js)) {
-    Serial.println("[BLE] failed to write /data.json");
-  }
+  Serial.println("[BLE] saved /data.json");
 
-  // Update display
+  myJson = js;  // ← 追加: グローバル変数を更新
+  Serial.println("[BLE] updated myJson");
+
   loadDisplayFromLittleFS();
   if (!performDisplay()) {
     Serial.println("[BLE] performDisplay: nothing to display");
