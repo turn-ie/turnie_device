@@ -60,7 +60,7 @@ static void OnMessageReceived(const uint8_t* data, size_t len) {
 
   // --- 以下、既存の処理 (一部 incoming 変数を利用して効率化) ---
   saveIncomingJson(data, len);  
-  DisplayManager::BlockFor(1600);
+  DisplayManager::BlockFor(2000); // ★ここで表示時間を設定 (1600ms)
   Ripple_PlayOnce();
 
   // 既に incoming に変換済みなので再利用
@@ -170,6 +170,8 @@ void loop() {
 
   if (DisplayManager::EndIfExpired()) {
     if (!myJson.isEmpty()) {
+      // 期限切れ後、自分のデータを再ロードして表示
+      loadDisplayFromJsonString(myJson);
       performDisplay();
     }
   }
