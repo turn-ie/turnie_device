@@ -100,14 +100,17 @@ void Ripple_PlayOnce(){
 void DiagonalWave_PlayOnce(){
   
   // ==== パラメータ設定 ====
-  const uint8_t LEVELS = 16;     // 階調数
-  const float WAVE_WIDTH = 2.0f; // 2本重なるので、少しだけ細くして解像感を出す
-  const float MOVE_STEP = 0.4f;  // 速度
+  const uint8_t LEVELS = 12;      // 階調数 (Rippleと同じ)
+  const float SIGMA = 0.8f;       // 波の幅 (ガウシアンの標準偏差)
+  const float SPEED = 0.18f;      // 速度
   
-  // 投影座標の範囲設定 (0〜14くらい)
-  const float START_POS = -5.0f;
-  const float END_POS = (Matrix.width() + Matrix.height()) + 5.0f; 
-  const float TOTAL_DIST = END_POS - START_POS;
+  // 中心を基準に左右対称にスタート
+  const float CENTER = (Matrix.width() - 1) * 0.5f;  // 8x8なら3.5
+  const float MARGIN = 2.5f;  // 画面外からのマージン
+  const float START_LEFT = -MARGIN;
+  const float START_RIGHT = (Matrix.width() - 1) + MARGIN;
+  const float HALF_DIST = CENTER + MARGIN;  // 中心までの距離
+  const float TOTAL_DIST = HALF_DIST * 2.0f;  // 全移動距離（すれ違って反対側まで）
   
   // 明るさ設定
   uint8_t originalBrightness = Matrix.getBrightness();
@@ -118,64 +121,59 @@ void DiagonalWave_PlayOnce(){
 
   // ==== アニメーションループ ====
   while(t <= TOTAL_DIST){
-    float center = START_POS + t;
+    // 左からの波の現在位置
+    float posLeft = START_LEFT + t;
+    // 右からの波の現在位置
+    float posRight = START_RIGHT - t;
 
     for(int y=0; y<Matrix.height(); ++y){ 
       for(int x=0; x<Matrix.width(); ++x){ 
+        float fx = (float)x;
         
-        // --- 変種のキモ: 2方向の斜め計算 ---
+        // --- 左からの波 ---
+        float distL = fx - posLeft;
+        float ampL = expf(-(distL*distL) / (2.f * SIGMA * SIGMA));
         
-        // 1. 左上→右下 ( \ ) の距離
-        float proj1 = (float)x + (float)y; 
-        float dist1 = proj1 - center;
-        float amp1 = expf(-(dist1*dist1) / (2.f * WAVE_WIDTH * WAVE_WIDTH));
-
-        // 2. 右上→左下 ( / ) の距離
-        // xを反転させることで逆向きの斜めを作る
-        float proj2 = (float)(Matrix.width() - 1 - x) + (float)y;
-        float dist2 = proj2 - center; // 同じ進行度で動かす
-        float amp2 = expf(-(dist2*dist2) / (2.f * WAVE_WIDTH * WAVE_WIDTH));
-
-        // ★ 2つの波を合成（足し合わせる）
-        // 交差する点は amp が高くなり、より明るく発光する
-        float amp = amp1 + amp2;
-        if(amp > 1.f) amp = 1.f; 
+        // --- 右からの波 ---
+        float distR = fx - posRight;
+        float ampR = expf(-(distR*distR) / (2.f * SIGMA * SIGMA));
         
-        // --- 以下、共通の高画質化処理 ---
-
+        // ★ 2つの波を合成
+        // すれ違う点でより明るく発光
+        float amp = ampL + ampR;
+        if(amp > 1.f) amp = 1.f;
+        
+        // --- Ripple風グラデーション処理 ---
+        
         // 1. 多階調化
         float stepped = floorf(amp * LEVELS) / LEVELS;
-
-        // 2. 彩度計算
-        // 交差点（ampが高い）は強烈に白く光る
-        float satf = 1.0f - (0.5f * amp); 
+        
+        // 2. 彩度計算 (Ripple風: 中心ほど彩度を下げて白っぽく)
+        float satf = 0.90f - 0.25f * amp;
         if(satf < 0.f) satf = 0.f;
-
-        // 3. 色相シフト
-        // 明るい部分だけ少し色を回す
-        uint8_t pixelHue = localHue + (uint8_t)(amp * 20.0f);
-
-        // 4. 明度計算
-        uint8_t V = gamma8(stepped); 
-        V = (uint8_t)((V * 255) / 255); 
+        if(satf > 1.f) satf = 1.f;
+        
+        // 3. 明度計算 (Ripple風)
+        uint8_t V = gamma8(stepped * 0.9f);
+        V = (uint8_t)((V * 250 + 127) / 255);
         
         uint8_t S = (uint8_t)(satf * 255.f + 0.5f);
         
-        uint16_t c = ColorHSV8(pixelHue, S, V); 
+        uint16_t c = ColorHSV8(localHue, S, V); 
         Matrix.drawPixel(x, y, c);
       } 
     }
     Matrix.show(); 
     delay(20); 
     
-    t += MOVE_STEP; 
+    t += SPEED; 
   }
   
   // フェードアウト
   for(int b=gMotionBrightness; b>=0; b-=2){ 
     Matrix.setBrightness(b); 
     Matrix.show(); 
-    delay(10);
+    delay(18);
   } 
   Matrix.fillScreen(0); 
   Matrix.show();
