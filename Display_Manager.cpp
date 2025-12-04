@@ -59,10 +59,17 @@ void Clear() {
   s_until_ms = 0;
 }
 
-void AllOn(uint8_t brightness) {
+void AllOnGreen(uint8_t brightness) {
   TextScroll_Stop(); // ★追加: スクロールを停止
   s_matrix.setBrightness(brightness);
-  s_matrix.fillScreen(s_matrix.Color(255, 255, 255));
+  s_matrix.fillScreen(s_matrix.Color(255, 0, 0));
+  s_matrix.show();
+}
+
+void AllOnRed(uint8_t brightness) {
+  TextScroll_Stop(); // ★追加: スクロールを停止
+  s_matrix.setBrightness(brightness);
+  s_matrix.fillScreen(s_matrix.Color(0, 255, 0));
   s_matrix.show();
 }
 

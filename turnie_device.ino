@@ -14,7 +14,7 @@
 #include "Json_Handler.h"
 #include "BLE_Manager.h"
 #include "Comm_EspNow.h"
-// #include "OTA_Handler.h" // OTA無効化
+#include "OTA_Handler.h" // ★変更: コメントアウト解除
 
 /***** LED MATRIX 設定 *****/
 int GLOBAL_BRIGHTNESS = 20;
@@ -26,7 +26,9 @@ uint16_t TEXT_FRAME_DELAY_MS = 60;
 #endif
 
 static OneButton g_btn;
+static OneButton g_btnBoot(0, true); // ★追加: Bootボタン (GPIO 0)
 static bool DisplayMode = false;
+static bool OtaMode = false; // ★追加: OTAモード管理フラグ
 
 /***** 受信制御 *****/
 String lastRxData = "";
@@ -79,7 +81,7 @@ void setup() {
   delay(200);
   Serial.println("\n=== ESP-NOW JSON Broadcast ===");
 
-  // setupOTA(); // OTA無効化
+  // setupOTA(); // ★起動時はOTAセットアップしない（ボタンで起動する）
 
   DisplayManager::Init(GLOBAL_BRIGHTNESS);
   DisplayManager::TextInit();
@@ -88,6 +90,22 @@ void setup() {
   // ボタン初期化
   g_btn.setup(BUTTON_PIN, INPUT_PULLUP, true);
   g_btn.setClickMs(300);
+
+  // ★追加: Bootボタン初期化とOTAモード切り替え
+  g_btnBoot.attachClick([]() {
+    if (OtaMode) return; // 既にOTAモードなら何もしない
+    
+    Serial.println("\n[OTA] Boot Button Pressed. Starting OTA Mode...");
+    OtaMode = true;
+
+    // ESP-NOWを停止してWiFi接続に備える
+    esp_now_deinit();
+    WiFi.disconnect(true);
+    delay(100);
+
+    // OTAセットアップ（内部で赤→白のLED制御を行う）
+    setupOTA();
+  });
 
   // ダブルクリック: 表示モード切替
   g_btn.attachDoubleClick([]() {
@@ -151,16 +169,7 @@ void setup() {
   Serial.printf("強制的に CH %d を使用\n", WIFI_CH);
   Comm_Init(WIFI_CH);
 
-  /* 以前の自動判定ロジックを無効化
-  int currentChannel = WiFi.channel();
-  if (currentChannel > 0) {
-    Serial.printf("WiFi CH %d を使用\n", currentChannel);
-    Comm_Init(currentChannel);
-  } else {
-    Serial.printf("デフォルト CH %d を使用\n", WIFI_CH);
-    Comm_Init(WIFI_CH);
-  }
-  */
+
   Comm_SetMinRssiToAccept(RSSI_THRESHOLD_DBM);
 
   BLE_Init();
@@ -168,7 +177,14 @@ void setup() {
 
 /***** loop *****/
 void loop() {
-  // handleOTA(); // OTA無効化
+  g_btn.tick();
+  g_btnBoot.tick(); // ★追加: Bootボタンの監視
+
+  // ★追加: OTAモード中はOTA処理のみを行い、他の処理をスキップする
+  if (OtaMode) {
+    handleOTA();
+    return;
+  }
 
   static unsigned long nextSend = 0;
   unsigned long now = millis();
@@ -216,9 +232,7 @@ void loop() {
   // 定期ブロードキャスト
   if (!myJson.isEmpty() && now >= nextSend) {
     Comm_SendJsonBroadcast(myJson);
-    // 送信間隔をランダム化 (2000ms 〜 3000ms)
-    // これにより、デバイス間の送信タイミングの同期（衝突）を防ぐ
-    nextSend = now + 2000 + (esp_random() % 1000); 
+    nextSend = now + 100 + (esp_random() % 100);
   }
 
   // シリアル経由でJSON保存
