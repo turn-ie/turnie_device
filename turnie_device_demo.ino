@@ -40,7 +40,9 @@ const unsigned long RECEIVE_DISPLAY_GUARD_MS = 4500;
 /***** 無線設定 *****/
 static const int WIFI_CH = 6;
 static const char* JSON_PATH = "/data.json";
-static int RSSI_THRESHOLD_DBM = -75;
+static int RSSI_THRESHOLD_DBM = -65;
+//金属-65
+//PLA-50
 
 /***** ランタイム状態 *****/
 String myJson;
